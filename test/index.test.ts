@@ -1,25 +1,58 @@
-import { Elysia } from '@huyooo/elysia'
+import { Server, composeMiddleware, json } from 'tirne'
 import { bearer } from '../src'
 
 import { describe, expect, it } from 'bun:test'
 
-const req = (path: string) => new Request(`http://localhost:8080${path}`)
+// Helper function to create test request
+const createRequest = (url: string, options: RequestInit = {}) => {
+	return new Request(url, {
+		method: 'GET',
+		...options
+	})
+}
 
-const app = new Elysia().use(bearer()).get('/sign', ({ bearer }) => bearer, {
-	beforeHandle({ bearer, set }) {
-		if (!bearer) {
-			set.status = 400
-			set.headers[
-				'WWW-Authenticate'
-			] = `Bearer realm='sign', error="invalid_request"`
-
-			return 'Unauthorized'
+// Test app with bearer middleware
+const app = new Server([
+	{
+		method: 'GET',
+		path: '/sign',
+		handler: (req: any) => {
+			const token = (req as any).bearer
+			if (!token) {
+				return json(
+					{ error: 'Unauthorized' },
+					400,
+					{ 'WWW-Authenticate': 'Bearer realm="sign", error="invalid_request"' }
+				)
+			}
+			return json({ token })
 		}
 	}
-})
+])
 
-const nonRFC = new Elysia()
-	.use(
+const handler = composeMiddleware([bearer()], (req: Request) => app.fetch(req))
+
+// Non-RFC compliant app with custom extractors
+const nonRFC = new Server([
+	{
+		method: 'GET',
+		path: '/sign',
+		handler: (req: any) => {
+			const token = (req as any).bearer
+			if (!token) {
+				return json(
+					{ error: 'Unauthorized' },
+					400,
+					{ 'WWW-Authenticate': 'a realm="sign", error="invalid_request"' }
+				)
+			}
+			return json({ token })
+		}
+	}
+])
+
+const nonRFCHandler = composeMiddleware(
+	[
 		bearer({
 			extract: {
 				body: 'a',
@@ -27,38 +60,27 @@ const nonRFC = new Elysia()
 				query: 'a'
 			}
 		})
-	)
-	.get('/sign', ({ bearer }) => bearer, {
-		beforeHandle({ bearer, set }) {
-			if (!bearer) {
-				set.status = 400
-				set.headers[
-					'WWW-Authenticate'
-				] = `Bearer realm='sign', error="invalid_request"`
-
-				return 'Unauthorized'
-			}
-		}
-	})
+	],
+	(req: Request) => nonRFC.fetch(req)
+)
 
 describe('Bearer', () => {
 	it('parse bearer from header', async () => {
-		const res = await app
-			.handle(
-				new Request('http://localhost/sign', {
-					headers: {
-						Authorization: 'Bearer saltyAom'
-					}
-				})
-			)
-			.then((r) => r.text())
+		const res = await handler(
+			createRequest('http://localhost/sign', {
+				headers: {
+					Authorization: 'Bearer saltyAom'
+				}
+			})
+		)
 
-		expect(res).toBe('saltyAom')
+		const data = await res.json()
+		expect(data.token).toBe('saltyAom')
 	})
 
 	it("don't parse empty Bearer header", async () => {
-		const res = await app.handle(
-			new Request('http://localhost/sign', {
+		const res = await handler(
+			createRequest('http://localhost/sign', {
 				headers: {
 					Authorization: 'Bearer '
 				}
@@ -69,32 +91,33 @@ describe('Bearer', () => {
 	})
 
 	it('parse bearer from query', async () => {
-		const res = await app
-			.handle(new Request('http://localhost/sign?access_token=saltyAom'))
-			.then((r) => r.text())
+		const res = await handler(
+			createRequest('http://localhost/sign?access_token=saltyAom')
+		)
 
-		expect(res).toBe('saltyAom')
+		const data = await res.json()
+		expect(data.token).toBe('saltyAom')
 	})
 
 	it('parse bearer from custom header', async () => {
-		const res = await nonRFC
-			.handle(
-				new Request('http://localhost/sign', {
-					headers: {
-						Authorization: 'a saltyAom'
-					}
-				})
-			)
-			.then((r) => r.text())
+		const res = await nonRFCHandler(
+			createRequest('http://localhost/sign', {
+				headers: {
+					Authorization: 'a saltyAom'
+				}
+			})
+		)
 
-		expect(res).toBe('saltyAom')
+		const data = await res.json()
+		expect(data.token).toBe('saltyAom')
 	})
 
 	it('parse bearer from custom query', async () => {
-		const res = await nonRFC
-			.handle(new Request('http://localhost/sign?a=saltyAom'))
-			.then((r) => r.text())
+		const res = await nonRFCHandler(
+			createRequest('http://localhost/sign?a=saltyAom')
+		)
 
-		expect(res).toBe('saltyAom')
+		const data = await res.json()
+		expect(data.token).toBe('saltyAom')
 	})
 })

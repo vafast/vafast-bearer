@@ -1,47 +1,63 @@
-# @huyooo/elysia-bearer
-Plugin for [elysia](https://github.com/elysiajs/elysia) for retrieving Bearer token.
+# @vafast/bearer
 
-This plugin is for retrieving a Bearer token specified in [RFC6750](https://www.rfc-editor.org/rfc/rfc6750#section-2).
+Middleware for [Tirne](https://github.com/tirnejs/tirne) for retrieving Bearer token.
 
-This plugin **DOES NOT** handle authentication validation for your server, rather the plugin leaves the decision for developers to apply logic for handle validation check themself.
+This middleware is for retrieving a Bearer token specified in [RFC6750](https://www.rfc-editor.org/rfc/rfc6750#section-2).
+
+This middleware **DOES NOT** handle authentication validation for your server, rather the middleware leaves the decision for developers to apply logic for handle validation check themself.
 
 ## Installation
 ```bash
-bun add @huyooo/elysia-bearer
+bun add @vafast/bearer
 ```
 
 ## Example
 ```typescript
-import { Elysia } from '@huyooo/elysia'
-import { bearer } from '@huyooo/elysia-bearer'
+import { Server, composeMiddleware, json } from 'tirne'
+import { bearer } from '@vafast/bearer'
 
-const app = new Elysia()
-    .use(bearer())
-    .get('/sign', ({ bearer }) => bearer, {
-        beforeHandle({ bearer, set }) {
-            if (!bearer) {
-                set.status = 400
-                set.headers[
-                    'WWW-Authenticate'
-                ] = `Bearer realm='sign', error="invalid_request"`
+// Define routes
+const routes = [
+  {
+    method: 'GET',
+    path: '/sign',
+    handler: (req: any) => {
+      const token = req.bearer
+      if (!token) {
+        return json(
+          { error: 'Unauthorized' },
+          400,
+          { 'WWW-Authenticate': 'Bearer realm="sign", error="invalid_request"' }
+        )
+      }
+      return json({ token })
+    }
+  }
+]
 
-                return 'Unauthorized'
-            }
-        }
-    })
-    .listen(8080)
+// Create server with bearer middleware
+const server = new Server(routes)
+const handler = composeMiddleware(
+  [bearer()], // Add bearer middleware
+  (req: Request) => server.fetch(req)
+)
+
+// Export for Bun/Workers
+export default {
+  fetch: handler
+}
 ```
 
 ## API
-This plugin decorates `bearer` into `Context`.
+This middleware decorates `bearer` into the request object.
 
 ### bearer
-Extracted bearer token according to RFC6750, is either `string` or `undefined`,
+Extracted bearer token according to RFC6750, is either `string` or `undefined`.
 
 If is undefined, means that there's no token provided.
 
 ## Config
-Below is the configurable property for customizing the Bearer plugin.
+Below is the configurable property for customizing the Bearer middleware.
 
 ### Extract
 Custom extractor for retrieving tokens when the API doesn't compliant with RFC6750.
@@ -72,3 +88,13 @@ extract: {
     header?: string
 }
 ```
+
+## Features
+- ✅ RFC6750 compliant
+- ✅ Extract from Authorization header
+- ✅ Extract from query parameters
+- ✅ Extract from request body
+- ✅ Customizable field names
+- ✅ TypeScript support
+- ✅ Bun and Node.js compatible
+- ✅ Edge runtime ready
