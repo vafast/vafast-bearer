@@ -71,8 +71,15 @@ export const bearer = (
 		// Extract from body if not found in header or query
 		if (!bearerToken && req.method !== 'GET') {
 			try {
-				const bodyData = await req.clone().json() as Record<string, any>
-				if (bodyData && typeof bodyData === 'object' && bodyData[body]) {
+				const bodyData = (await req.clone().json()) as Record<
+					string,
+					any
+				>
+				if (
+					bodyData &&
+					typeof bodyData === 'object' &&
+					bodyData[body]
+				) {
 					bearerToken = bodyData[body]
 				}
 			} catch {
