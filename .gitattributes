@@ -1,31 +1,38 @@
-# 统一行结束符为LF
-* text=auto eol=lf
+# 设置默认行为，自动处理行尾符
+* text=auto
 
-# 确保特定文件类型使用LF
+# 明确指定文本文件使用 LF
 *.js text eol=lf
 *.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
 *.json text eol=lf
 *.md text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
 *.gitignore text eol=lf
 *.gitattributes text eol=lf
 
 # 二进制文件
 *.png binary
 *.jpg binary
+*.jpeg binary
 *.gif binary
 *.ico binary
-*.mov binary
+*.svg binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.webp binary
 *.mp4 binary
 *.mp3 binary
-*.flv binary
-*.fla binary
-*.swf binary
-*.gz binary
-*.zip binary
-*.7z binary
-*.ttf binary
-*.eot binary
-*.woff binary
-*.woff2 binary
+*.wav binary
+*.flac binary
