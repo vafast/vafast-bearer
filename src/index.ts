@@ -1,4 +1,5 @@
-import type { Middleware } from 'tirne'
+import type { Middleware } from 'vafast'
+import { withExtra, setLocals } from 'vafast'
 
 export interface BearerOptions {
 	/**
@@ -87,11 +88,16 @@ export const bearer = (
 			}
 		}
 
-		// Attach bearer token to request for downstream handlers
-		;(req as any).bearer = bearerToken
+		// Inject bearer token to request context using setLocals
+		setLocals(req, { bearer: bearerToken })
 
 		return next()
 	}
 }
+
+// 创建类型化的处理器工厂，保持中间件的类型安全
+export const createTypedHandler = withExtra<{
+	bearer: string | undefined
+}>()
 
 export default bearer

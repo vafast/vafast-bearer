@@ -1,41 +1,40 @@
-import { Server, composeMiddleware, json } from 'tirne'
-import { bearer } from '../src/index'
+import { Server, createRouteHandler } from 'vafast'
+import { bearer, createTypedHandler } from '../src/index'
 
-// Define route handlers
+// Define route handlers using vafast style
 const routes = [
 	{
 		method: 'GET',
 		path: '/',
-		handler: () => json({ message: 'Bearer Token API' })
+		handler: createRouteHandler(() => {
+			return {
+				message: 'Bearer Token API'
+			}
+		})
 	},
 	{
 		method: 'GET',
 		path: '/sign',
-		handler: (req: any) => {
-			// Access bearer token from request
-			const token = (req as any).bearer
-			if (!token) {
-				return json(
-					{ error: 'Unauthorized', message: 'Bearer token required' },
-					401,
-					{ 'WWW-Authenticate': 'Bearer realm="sign", error="invalid_request"' }
-				)
+		handler: createTypedHandler({}, ({ bearer }) => {
+			// Access bearer token with full type safety
+			if (!bearer) {
+				return {
+					error: 'Unauthorized',
+					message: 'Bearer token required'
+				}
 			}
-			return json({ token })
-		}
+			return { token: bearer }
+		})
 	}
 ]
 
 // Create server with bearer middleware
 const server = new Server(routes)
 
-// Compose middleware with bearer authentication
-const handler = composeMiddleware(
-	[bearer()], // Add bearer middleware
-	(req: Request) => server.fetch(req)
-)
-
-// Export for Bun/Workers
+// Export for Bun/Workers with bearer middleware
 export default {
-	fetch: handler
+	fetch: (req: Request) => {
+		// Apply bearer middleware
+		return bearer()(req, () => server.fetch(req))
+	}
 }

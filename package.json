@@ -11,11 +11,11 @@
 		"release": "npm run build && npm run test && npm publish --access public"
 	},
 	"peerDependencies": {
-		"tirne": ">= 0.1.0"
+		"vafast": ">= 0.1.0"
 	},
 	"devDependencies": {
 		"@types/bun": "1.1.14",
-		"tirne": "^0.1.16",
+		"vafast": "^0.1.12",
 		"eslint": "9.6.0",
 		"tsup": "^8.1.0",
 		"typescript": "^5.5.3"
@@ -32,7 +32,7 @@
 		}
 	},
 	"keywords": [
-		"tirne",
+		"vafast",
 		"bearer",
 		"authentication",
 		"middleware"
@@ -49,6 +49,6 @@
 	"homepage": "https://github.com/vafastjs/vafast-bearer",
 	"bugs": "https://github.com/vafastjs/vafast-bearer/issues",
 	"dependencies": {
-		"tirne": "^0.1.16"
+		"vafast": "^0.1.12"
 	}
 }

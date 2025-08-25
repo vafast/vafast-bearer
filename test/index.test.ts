@@ -1,5 +1,5 @@
-import { Server, composeMiddleware, json } from 'tirne'
-import { bearer } from '../src'
+import { Server, createRouteHandler } from 'vafast'
+import { bearer, createTypedHandler } from '../src'
 
 import { describe, expect, it } from 'bun:test'
 
@@ -16,53 +16,46 @@ const app = new Server([
 	{
 		method: 'GET',
 		path: '/sign',
-		handler: (req: any) => {
-			const token = (req as any).bearer
-			if (!token) {
-				return json(
-					{ error: 'Unauthorized' },
-					400,
-					{ 'WWW-Authenticate': 'Bearer realm="sign", error="invalid_request"' }
-				)
+		handler: createTypedHandler({}, ({ bearer }) => {
+			if (!bearer) {
+				return {
+					error: 'Unauthorized'
+				}
 			}
-			return json({ token })
-		}
+			return { token: bearer }
+		})
 	}
 ])
 
-const handler = composeMiddleware([bearer()], (req: Request) => app.fetch(req))
+const handler = (req: Request) => {
+	return bearer()(req, () => app.fetch(req))
+}
 
 // Non-RFC compliant app with custom extractors
 const nonRFC = new Server([
 	{
 		method: 'GET',
 		path: '/sign',
-		handler: (req: any) => {
-			const token = (req as any).bearer
-			if (!token) {
-				return json(
-					{ error: 'Unauthorized' },
-					400,
-					{ 'WWW-Authenticate': 'a realm="sign", error="invalid_request"' }
-				)
+		handler: createTypedHandler({}, ({ bearer }) => {
+			if (!bearer) {
+				return {
+					error: 'Unauthorized'
+				}
 			}
-			return json({ token })
-		}
+			return { token: bearer }
+		})
 	}
 ])
 
-const nonRFCHandler = composeMiddleware(
-	[
-		bearer({
-			extract: {
-				body: 'a',
-				header: 'a',
-				query: 'a'
-			}
-		})
-	],
-	(req: Request) => nonRFC.fetch(req)
-)
+const nonRFCHandler = (req: Request) => {
+	return bearer({
+		extract: {
+			body: 'a',
+			header: 'a',
+			query: 'a'
+		}
+	})(req, () => nonRFC.fetch(req))
+}
 
 describe('Bearer', () => {
 	it('parse bearer from header', async () => {
@@ -87,7 +80,8 @@ describe('Bearer', () => {
 			})
 		)
 
-		expect(res.status).toBe(400)
+		const data = await res.json()
+		expect(data.error).toBe('Unauthorized')
 	})
 
 	it('parse bearer from query', async () => {
