@@ -1,6 +1,6 @@
 # @vafast/bearer
 
-Middleware for [Tirne](https://github.com/tirnejs/tirne) for retrieving Bearer token.
+Middleware for [Vafast](https://github.com/vafastjs/vafast) for retrieving Bearer token.
 
 This middleware is for retrieving a Bearer token specified in [RFC6750](https://www.rfc-editor.org/rfc/rfc6750#section-2).
 
@@ -13,7 +13,7 @@ bun add @vafast/bearer
 
 ## Example
 ```typescript
-import { Server, composeMiddleware, json } from 'tirne'
+import { Server, createHandler } from 'vafast'
 import { bearer } from '@vafast/bearer'
 
 // Define routes
@@ -21,30 +21,34 @@ const routes = [
   {
     method: 'GET',
     path: '/sign',
-    handler: (req: any) => {
+    handler: createHandler((req: any) => {
       const token = req.bearer
       if (!token) {
-        return json(
-          { error: 'Unauthorized' },
-          400,
-          { 'WWW-Authenticate': 'Bearer realm="sign", error="invalid_request"' }
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'WWW-Authenticate': 'Bearer realm="sign", error="invalid_request"'
+            }
+          }
         )
       }
-      return json({ token })
-    }
+      return new Response(JSON.stringify({ token }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }),
+    middleware: [bearer()] // Add bearer middleware
   }
 ]
 
 // Create server with bearer middleware
 const server = new Server(routes)
-const handler = composeMiddleware(
-  [bearer()], // Add bearer middleware
-  (req: Request) => server.fetch(req)
-)
 
 // Export for Bun/Workers
 export default {
-  fetch: handler
+  fetch: (req: Request) => server.fetch(req)
 }
 ```
 
