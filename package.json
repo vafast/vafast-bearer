@@ -1,6 +1,6 @@
 {
 	"name": "@vafast/bearer",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Middleware for Vafast for retrieving Bearer token",
 	"type": "module",
 	"license": "MIT",
