@@ -1,5 +1,5 @@
 import type { Middleware } from 'vafast'
-import { withExtra, setLocals } from 'vafast'
+import { setLocals, getLocals, parseQuery, parseBody } from 'vafast'
 
 export interface BearerOptions {
 	/**
@@ -60,28 +60,25 @@ export const bearer = (
 			bearerToken = authorization.slice(header.length + 1)
 		}
 
-		// Extract from query parameters if not found in header
+		// Extract from query parameters if not found in header (使用 vafast 内置解析器)
 		if (!bearerToken) {
-			const url = new URL(req.url)
-			const queryToken = url.searchParams.get(queryName)
-			if (queryToken) {
+			const query = parseQuery(req)
+			const queryToken = query[queryName]
+			if (typeof queryToken === 'string') {
 				bearerToken = queryToken
 			}
 		}
 
-		// Extract from body if not found in header or query
+		// Extract from body if not found in header or query (使用 vafast 内置解析器)
 		if (!bearerToken && req.method !== 'GET') {
 			try {
-				const bodyData = (await req.clone().json()) as Record<
-					string,
-					any
-				>
+				const bodyData = await parseBody(req.clone()) as Record<string, unknown>
 				if (
 					bodyData &&
 					typeof bodyData === 'object' &&
 					bodyData[body]
 				) {
-					bearerToken = bodyData[body]
+					bearerToken = bodyData[body] as string
 				}
 			} catch {
 				// Ignore body parsing errors
@@ -95,9 +92,10 @@ export const bearer = (
 	}
 }
 
-// 创建类型化的处理器工厂，保持中间件的类型安全
-export const createTypedHandler = withExtra<{
-	bearer: string | undefined
-}>()
+// 获取 bearer token 的辅助函数
+export const getBearer = (req: Request): string | undefined => {
+	const locals = getLocals<{ bearer?: string }>(req)
+	return locals?.bearer
+}
 
 export default bearer

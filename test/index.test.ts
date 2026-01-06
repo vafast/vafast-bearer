@@ -1,7 +1,6 @@
-import { Server, createRouteHandler } from 'vafast'
-import { bearer, createTypedHandler } from '../src'
-
-import { describe, expect, it } from 'bun:test'
+import { Server, createHandler, json } from 'vafast'
+import { bearer, getBearer } from '../src'
+import { describe, expect, it } from 'vitest'
 
 // Helper function to create test request
 const createRequest = (url: string, options: RequestInit = {}) => {
@@ -16,50 +15,42 @@ const app = new Server([
 	{
 		method: 'GET',
 		path: '/sign',
-		handler: createTypedHandler({}, ({ bearer }) => {
-			if (!bearer) {
-				return {
-					error: 'Unauthorized'
-				}
+		handler: createHandler(({ req }) => {
+			const bearerToken = getBearer(req)
+			if (!bearerToken) {
+				return json({ error: 'Unauthorized' })
 			}
-			return { token: bearer }
-		})
+			return json({ token: bearerToken })
+		}),
+		middleware: [bearer()]
 	}
 ])
-
-const handler = (req: Request) => {
-	return bearer()(req, () => app.fetch(req))
-}
 
 // Non-RFC compliant app with custom extractors
 const nonRFC = new Server([
 	{
 		method: 'GET',
 		path: '/sign',
-		handler: createTypedHandler({}, ({ bearer }) => {
-			if (!bearer) {
-				return {
-					error: 'Unauthorized'
-				}
+		handler: createHandler(({ req }) => {
+			const bearerToken = getBearer(req)
+			if (!bearerToken) {
+				return json({ error: 'Unauthorized' })
 			}
-			return { token: bearer }
-		})
+			return json({ token: bearerToken })
+		}),
+		middleware: [bearer({
+			extract: {
+				body: 'a',
+				header: 'a',
+				query: 'a'
+			}
+		})]
 	}
 ])
 
-const nonRFCHandler = (req: Request) => {
-	return bearer({
-		extract: {
-			body: 'a',
-			header: 'a',
-			query: 'a'
-		}
-	})(req, () => nonRFC.fetch(req))
-}
-
 describe('Bearer', () => {
 	it('parse bearer from header', async () => {
-		const res = await handler(
+		const res = await app.fetch(
 			createRequest('http://localhost/sign', {
 				headers: {
 					Authorization: 'Bearer saltyAom'
@@ -72,7 +63,7 @@ describe('Bearer', () => {
 	})
 
 	it("don't parse empty Bearer header", async () => {
-		const res = await handler(
+		const res = await app.fetch(
 			createRequest('http://localhost/sign', {
 				headers: {
 					Authorization: 'Bearer '
@@ -85,7 +76,7 @@ describe('Bearer', () => {
 	})
 
 	it('parse bearer from query', async () => {
-		const res = await handler(
+		const res = await app.fetch(
 			createRequest('http://localhost/sign?access_token=saltyAom')
 		)
 
@@ -94,7 +85,7 @@ describe('Bearer', () => {
 	})
 
 	it('parse bearer from custom header', async () => {
-		const res = await nonRFCHandler(
+		const res = await nonRFC.fetch(
 			createRequest('http://localhost/sign', {
 				headers: {
 					Authorization: 'a saltyAom'
@@ -107,7 +98,7 @@ describe('Bearer', () => {
 	})
 
 	it('parse bearer from custom query', async () => {
-		const res = await nonRFCHandler(
+		const res = await nonRFC.fetch(
 			createRequest('http://localhost/sign?a=saltyAom')
 		)
 
