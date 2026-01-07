@@ -44,13 +44,13 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/vafastjs/vafast-bearer"
+		"url": "https://github.com/vafast/vafast-bearer"
 	},
 	"author": {
 		"name": "saltyAom",
 		"url": "https://github.com/SaltyAom",
 		"email": "saltyaom@gmail.com"
 	},
-	"homepage": "https://github.com/vafastjs/vafast-bearer",
-	"bugs": "https://github.com/vafastjs/vafast-bearer/issues"
+	"homepage": "https://github.com/vafast/vafast-bearer",
+	"bugs": "https://github.com/vafast/vafast-bearer/issues"
 }
