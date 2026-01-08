@@ -8,7 +8,7 @@ This middleware **DOES NOT** handle authentication validation for your server, r
 
 ## Installation
 ```bash
-bun add @vafast/bearer
+npm install @vafast/bearer
 ```
 
 ## Example
