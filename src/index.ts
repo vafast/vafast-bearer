@@ -1,5 +1,5 @@
-import type { Middleware } from 'vafast'
-import { setLocals, getLocals, parseQuery, parseBody } from 'vafast'
+import { defineMiddleware } from 'vafast'
+import { parseQuery, parseBody } from 'vafast'
 
 export interface BearerOptions {
 	/**
@@ -50,8 +50,8 @@ export const bearer = (
 			header: 'Bearer'
 		}
 	}
-): Middleware => {
-	return async (req, next) => {
+) => {
+	return defineMiddleware<{ bearer?: string }>(async (req, next) => {
 		// Extract bearer token from Authorization header
 		const authorization = req.headers.get('authorization')
 		let bearerToken: string | undefined
@@ -85,16 +85,14 @@ export const bearer = (
 			}
 		}
 
-		// Inject bearer token to request context using setLocals
-		setLocals(req, { bearer: bearerToken })
-
-		return next()
-	}
+		// 通过 next 传递 bearer token 到上下文
+		return next({ bearer: bearerToken })
+	})
 }
 
 // 获取 bearer token 的辅助函数
 export const getBearer = (req: Request): string | undefined => {
-	const locals = getLocals<{ bearer?: string }>(req)
+	const locals = (req as unknown as { __locals?: { bearer?: string } }).__locals
 	return locals?.bearer
 }
 

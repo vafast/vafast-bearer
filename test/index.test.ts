@@ -1,4 +1,4 @@
-import { Server, createHandler, json } from 'vafast'
+import { Server, defineRoute, defineRoutes, json } from 'vafast'
 import { bearer, getBearer } from '../src'
 import { describe, expect, it } from 'vitest'
 
@@ -11,42 +11,44 @@ const createRequest = (url: string, options: RequestInit = {}) => {
 }
 
 // Test app with bearer middleware
-const app = new Server([
-	{
-		method: 'GET',
-		path: '/sign',
-		handler: createHandler(({ req }) => {
-			const bearerToken = getBearer(req)
-			if (!bearerToken) {
-				return json({ error: 'Unauthorized' })
-			}
-			return json({ token: bearerToken })
-		}),
-		middleware: [bearer()]
-	}
-])
+const app = new Server(
+	defineRoutes([
+		defineRoute({
+			method: 'GET',
+			path: '/sign',
+			handler: ({ bearer }) => {
+				if (!bearer) {
+					return json({ error: 'Unauthorized' })
+				}
+				return json({ token: bearer })
+			},
+			middleware: [bearer()]
+		})
+	])
+)
 
 // Non-RFC compliant app with custom extractors
-const nonRFC = new Server([
-	{
-		method: 'GET',
-		path: '/sign',
-		handler: createHandler(({ req }) => {
-			const bearerToken = getBearer(req)
-			if (!bearerToken) {
-				return json({ error: 'Unauthorized' })
-			}
-			return json({ token: bearerToken })
-		}),
-		middleware: [bearer({
-			extract: {
-				body: 'a',
-				header: 'a',
-				query: 'a'
-			}
-		})]
-	}
-])
+const nonRFC = new Server(
+	defineRoutes([
+		defineRoute({
+			method: 'GET',
+			path: '/sign',
+			handler: ({ bearer }) => {
+				if (!bearer) {
+					return json({ error: 'Unauthorized' })
+				}
+				return json({ token: bearer })
+			},
+			middleware: [bearer({
+				extract: {
+					body: 'a',
+					header: 'a',
+					query: 'a'
+				}
+			})]
+		})
+	])
+)
 
 describe('Bearer', () => {
 	it('parse bearer from header', async () => {
